@@ -4,6 +4,7 @@ const jwt=require('jsonwebtoken')
  * - user register controller
  * - POST /api/auth/register
  * - user login controller
+ * - POST /api/auth/login
  */
 
 async function userRegisterController(req, res) {
@@ -19,7 +20,32 @@ async function userRegisterController(req, res) {
   })
   const token= jwt.sign({userID:user._id},process.env.JWT_SECRET,{expiresIn:"3d"})
   res.cookie("jwt_token",token)
-  return res.status(201).json({
+  return res.status(201).json({          
+    user:{
+        _id:user._id,
+        email:user.email,
+        name:user.name
+    },
+    token
+  })
+}
+
+async function userLoginController(req,res){
+   const {email,password}=req.body;
+   const user=await userModel.findOne({email}).select("+password")
+   if(!user){
+    return res.status(401).json({
+       message:"Email or password is invalid"
+    })
+   }
+   const isValidPassword=await user.comparePassword(password)
+   if(!isValidPassword){
+      return res.status(401).json({
+       message:"Email or password is invalid"
+    })
+   }
+   const token = jwt.sign({userId:user._id},process.env.JWT_SECRET,{expiresIn:"3d"})
+    return res.status(200).json({          
     user:{
         _id:user._id,
         email:user.email,
@@ -30,5 +56,5 @@ async function userRegisterController(req, res) {
 }
 
 module.exports = {
-  userRegisterController,
+  userRegisterController, userLoginController
 };
